@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e
+
+main() {
+  DAY=$1
+  DFLAGS_ARR=()
+  CLEAN=
+
+  shift
+  parse_args $@
+
+  # Find dependencies of the code to libs
+  DEPS_ARR=()
+  for dep in IntCodeProgram Point2D
+  do
+    if grep -q "import $dep;" $DAY.d
+    then
+      DEPS_ARR+=("$dep.a")
+    fi
+  done
+
+  if [ -n "$CLEAN" ]
+  then
+    make -s clean
+  fi
+
+  export DEPS="${DEPS_ARR[@]}"
+  export DFLAGS="${DFLAGS_ARR[@]}"
+  make -s $DAY.run
+  time ./$DAY.run <$DAY.in
+}
+
+parse_args() {
+  local opt
+  while getopts ":coduh" opt; do
+    case $opt in
+      c) CLEAN=1;;
+      o) DFLAGS_ARR+=("-O" "-release" "-inline" "-boundscheck=off");;
+      d) DFLAGS_ARR+=("-debug");;
+      u) DFLAGS_ARR+=("-unittest");;
+      h|?) help; exit 1;;
+    esac
+  done
+}
+
+help() {
+  echo Usage: ./run program [-douh]
+  echo Options:
+  echo   -c              Remove old compiled files
+  echo   -d              Enable debug output
+  echo   -o              Optimize program
+  echo   -u              Run unittests
+  echo   -h              Show this help text
+}
+
+main $@
