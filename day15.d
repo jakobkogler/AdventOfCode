@@ -22,7 +22,7 @@ int ida(ref Program program) {
         isSolvable = solveable(program, Point(0, 0), rbtree, steps);
         debug writeln("  ", rbtree.length, " vertices visited");
         visited_cnts ~= rbtree.length;
-        if (visited_cnts[$-2] == visited_cnts[$-1])
+        if (visited_cnts.length > 1 && visited_cnts[$-2] == visited_cnts[$-1])
             break; // star 2
     } while(!isSolvable);
     return steps;
