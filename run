@@ -5,6 +5,7 @@ main() {
   DAY=$1
   DFLAGS_ARR=()
   CLEAN=
+  INPUT=
 
   shift
   parse_args $@
@@ -27,17 +28,21 @@ main() {
   export DEPS="${DEPS_ARR[@]}"
   export DFLAGS="${DFLAGS_ARR[@]}"
   make -s $DAY.run
-  time ./$DAY.run <$DAY.in
+  time ./$DAY.run <$DAY.in$INPUT
 }
 
 parse_args() {
   local opt
-  while getopts ":coduh" opt; do
+  while getopts ":coduh2345" opt; do
     case $opt in
       c) CLEAN=1;;
       o) DFLAGS_ARR+=("-O" "-release" "-inline" "-boundscheck=off");;
       d) DFLAGS_ARR+=("-debug");;
       u) DFLAGS_ARR+=("-unittest");;
+      2) INPUT="2";;
+      3) INPUT="3";;
+      4) INPUT="4";;
+      5) INPUT="5";;
       h|?) help; exit 1;;
     esac
   done
@@ -51,6 +56,10 @@ help() {
   echo   -o              Optimize program
   echo   -u              Run unittests
   echo   -h              Show this help text
+  echo   -2              Run with input file 2
+  echo   -3              Run with input file 3
+  echo   -4              Run with input file 4
+  echo   -5              Run with input file 5
 }
 
 main $@
