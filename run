@@ -28,7 +28,7 @@ main() {
   export DEPS="${DEPS_ARR[@]}"
   export DFLAGS="${DFLAGS_ARR[@]}"
   make -s $DAY.run
-  time ./$DAY.run <$DAY.in$INPUT
+  time ./$DAY.run <input/$DAY.in$INPUT
 }
 
 parse_args() {

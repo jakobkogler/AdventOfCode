@@ -27,7 +27,7 @@ bool inOutput(Program program, string s) {
 }
 
 void main() {
-    auto program_code = readText("day25.in").strip.split(',').to!(long[]);
+    auto program_code = readln.strip.split(',').to!(long[]);
     
     // star 1
     auto program = new Program(program_code);
