@@ -1,0 +1,9 @@
+#!.venv/bin/python
+from aocd import get_data
+from datetime import datetime
+
+day = datetime.now().day
+with open(f"input/day{day:02}.in", "w") as f:
+    data = get_data(year=2020)
+    f.write(data)
+    print(data[:300])
