@@ -5,4 +5,4 @@
 	dmd $< $(DEPS) -of=$@ $(DFLAGS)
 
 clean:
-	rm *.run *.a -f
+	rm *.run *.a *.o -f
