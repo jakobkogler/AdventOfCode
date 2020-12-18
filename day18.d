@@ -11,66 +11,65 @@ auto getInputLines() {
     return generate!(() => readln.strip).until(null).array;
 }
 
-long evaluate(string s) {
-    s = s.replace(" ", "");
-    ulong idx = 0;
-    debug writeln;
+void processOp(ref long[] st, char op) {
+    auto r = st.back;
+    st.popBack;
+    auto l = st.back;
+    st.popBack;
+    if (op == '+')
+        st ~= l + r;
+    if (op == '*')
+        st ~= l * r;
+}
+
+long evaluate(string s, int[char] priority) {
     debug writeln(s, ":");
+    long[] st;
+    char[] op;
+    foreach (i, char c; s) {
+        if (c == ' ')
+            continue;
 
-    long recEvaluate(int depth) {
-        debug writeln(' '.repeat.take(depth * 2), "start recursion: ");
-        // get number 1
-        long number1;
-        if (s[idx] == '(') {
-            idx++;
-            number1 = recEvaluate(depth + 1);
+        debug writeln("stack: ", st);
+        debug writeln("ops:   \"", op, "\"");
+        debug writeln("current char: ", c);
+        if (c == '(') {
+            op ~= c;
+        } else if (c == ')') {
+            while (op.back != '(') {
+                debug writeln("  last operation: ", op.back);
+                processOp(st, to!char(op.back));
+                op.popBack;
+                debug writeln("  ", st);
+                debug writeln("  ", op);
+            }
+            op.popBack;
+        } else if (c == '+' || c == '*') {
+            while (!op.empty && op.back != '(' && priority[to!char(op.back)] >= priority[c]) {
+                processOp(st, to!char(op.back));
+                op.popBack;
+            }
+            op ~= c;
         } else {
-            number1 = s[idx] - '0';
-            idx++;
+            st ~= c - '0';
         }
-        debug writeln(' '.repeat.take(depth * 2), "number1: ", number1);
-
-        while (idx < s.length && s[idx] != ')') {
-            // operation
-            char operation = s[idx];
-            idx++;
-            debug writeln(' '.repeat.take(depth * 2), "operation: ", operation);
-
-            // get number 2
-            long number2;
-            if (s[idx] == '(') {
-                idx++;
-                number2 = recEvaluate(depth + 1);
-            } else {
-                number2 = s[idx] - '0';
-                idx++;
-            }
-            debug writeln(' '.repeat.take(depth * 2), "number2: ", number2);
-
-            // do operation
-            debug write(' '.repeat.take(depth * 2), number1, " ", operation, " ", number2, " = ");
-            if (operation == '+') {
-                number1 += number2;
-            } else if (operation == '*') {
-                number1 *= number2;
-            }
-            debug writeln(number1);
-        }
-
-        if (idx < s.length && s[idx] == ')') {
-            idx++;
-        }
-        return number1;
+        debug writeln;
     }
-    return recEvaluate(1);
+    while (!op.empty) {
+        processOp(st, to!char(op.back));
+        op.popBack;
+    }
+    debug writeln("return ", st);
+    return st[0];
 }
 
 void main() {
     // Input
-    auto lines = getInputLines;
+    const lines = getInputLines;
 
     // Star 1
-    lines.map!evaluate.sum.writeln;
+    lines.map!(line => line.evaluate(['+': 1, '*': 1])).sum.writeln;
 
     // Star 2
+    lines.map!(line => line.evaluate(['+': 2, '*': 1])).sum.writeln;
 }
