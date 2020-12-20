@@ -1,90 +1,76 @@
+/+dub.sdl:
+dependency "mir-algorithm" version="~>2.0.0"
++/
+// run with dub --build=release --single day20.d <input/day20.in
+
 import std.stdio;
 import std.conv;
-import std.array;
 import std.algorithm;
 import std.string;
 import std.range;
 import std.regex;
-import std.typecons;
+import mir.ndslice : slice, Slice, fuse;
+import mir.ndslice.topology : map, as, mirRetro = retro, windows;
+import mir.ndslice.dynamic : rotated, reversed;
+import mir.ndslice.concatenation : concatenation;
+import mir.math.sum: mirSum = sum;
 
 auto getInputLines() {
     return generate!(() => readln.strip).until(null).array;
 }
 
-string[2] withRetro(string line) {
-    return [line, line.retro.to!string];
+alias Vector = Slice!(int*, 1);
+alias Matrix = Slice!(int*, 2);
+
+int toInt(Range)(Range v) {
+    return 0.reduce!`a * 2 + b`(v);
 }
 
-string column(const ref string[] image, int column) {
-    if (column < 0)
-        column += image[0].length;
-    string res;
-    foreach (line; image)
-        res ~= line[column];
-    return res;
-}
-
-string[] rotate(const ref string[] image) {
-    return image.length.iota.map!(i => image.column(to!int(i))).retro.array;
-}
-
-string[] mirror(const ref string[] image) {
-    return image.map!(line => line.retro.to!string).array;
-}
-
-ulong count2(const string[] img, char c) {
-    return img.map!(line => line.count(c)).sum;
+Matrix stringsToMatrix(const string[] s) {
+    return s.fuse.map!(a => a == '#').as!int.slice;
 }
 
 struct Tile {
     int id;
-    string[] image;
-    int orientation;
+    Matrix image;
+    int orientation = 0;
 
     this(string[] lines) {
         this.id = to!int(match(lines[0], `\d+`).captures[0]);
-        this.image = lines[1..$];
+        this.image = lines[1..$].stringsToMatrix;
     }
 
-    string[] getBorders() const {
-        string[] borders;
-        borders ~= image[0].withRetro;
-        borders ~= image[$-1].withRetro;
-        borders ~= image.column(0).withRetro;
-        borders ~= image.column(-1).withRetro;
-        return borders;
+    int[] getBorders() const {
+        Vector[] borders;
+        borders ~= image[0, 0..$].dup;
+        borders ~= image[$-1, 0..$].dup;
+        borders ~= image[0..$, 0].dup;
+        borders ~= image[0..$, $-1].dup;
+        foreach (v; borders.dup)
+            borders ~= v.mirRetro.slice;
+        return borders.map!toInt.array;
     }
 
     void nextOrientation() {
-        image = image.rotate;
+        image = image.rotated.slice;
         orientation = (orientation + 1) % 8;
         if (orientation % 4 == 0)
-            image = image.mirror;
+            image = image.reversed.slice;
     }
 }
 
-int countPattern(const string[] image, const string[] pattern) {
-    int cnt = 0;
-    foreach (lines; image.slide(pattern.length)) {
-        foreach (start; 0 .. lines[0].length - pattern[0].length + 1) {
-            auto slice = 3.iota.map!(i => lines[i][start..start + pattern[0].length]).array;
-            bool possible = true;
-            foreach (ab; zip(pattern, slice)) {
-                foreach (cd; zip(ab[0], ab[1])) {
-                    if (cd[0] == '#' && cd[1] != '#')
-                        possible = false;
-                }
-            }
-            cnt += possible;
-        }
-    }
-    return cnt;
+bool containsPattern(R)(R m, const Matrix pattern) {
+    return (m.slice & pattern).slice == pattern;
+}
+
+int countPattern(const Matrix image, const Matrix pattern) {
+    return image.windows(pattern.shape).map!(w => w.containsPattern(pattern)).mirSum(0);
 }
 
 void main() {
     // Input
     Tile[] tiles;
-    string[] borders;
+    int[] borders;
     while (true) {
         auto lines = getInputLines;
         if (lines) {
@@ -113,8 +99,8 @@ void main() {
 
     // start with corner and orient it accordingly
     puzzle ~= [corners[0]];
-    while (borderOccurences[puzzle[0][0].image[0]] != 1 ||
-           borderOccurences[puzzle[0][0].image.column(0)] != 1) {
+    while (borderOccurences[puzzle[0][0].image[0, 0..$].toInt] != 1 ||
+           borderOccurences[puzzle[0][0].image[0..$, 0].toInt] != 1) {
         puzzle[0][0].nextOrientation;
     }
     removeById(puzzle[0][0]);
@@ -126,7 +112,7 @@ void main() {
             found.id = -1;
             foreach (tile; tiles) {
                 foreach (i; 0..8) {
-                    if (puzzle[$-1][$-1].image.column(-1) == tile.image.column(0)) {
+                    if (puzzle[$-1][$-1].image[0..$, $-1] == tile.image[0..$, 0]) {
                         found = tile;
                         break;
                     }
@@ -147,7 +133,7 @@ void main() {
             found.id = -1;
             foreach (tile; tiles) {
                 foreach (i; 0..8) {
-                    if (puzzle[$-1][0].image[$-1] == tile.image[0]) {
+                    if (puzzle[$-1][0].image[$-1, 0..$] == tile.image[0, 0..$]) {
                         found = tile;
                         break;
                     }
@@ -164,28 +150,25 @@ void main() {
     debug puzzle.map!(line => line.map!(x => x.id).array).each!writeln;
 
     // convert to the final image
-    string[] image;
-    foreach (rowblocks; puzzle) {
-        string[] tmp = new string[rowblocks[0].image.length - 2];
-        foreach (block; rowblocks) {
-            foreach (i, line; block.image[1..$-1]) {
-                tmp[i] ~= line[1..$-1];
-            }
-        }
-        image ~= tmp;
+    auto fullPuzzle = puzzle.map!(tiles =>
+        tiles.map!(tile => tile.image[1..$-1, 1..$-1].slice).array).array;
+    Matrix[] rowblocks;
+    foreach (blocks; fullPuzzle) {
+        rowblocks ~= blocks.reduce!((a, b) => concatenation!1(a, b).slice);
     }
+    Matrix image = rowblocks.reduce!((a, b) => concatenation(a, b).slice);
 
     const string[] seamonster = ["                  # ",
                                  "#    ##    ##    ###",
                                  " #  #  #  #  #  #   "];
+    Matrix pattern = seamonster.stringsToMatrix;
     foreach (i; 0..8) {
-        int cnt = image.countPattern(seamonster);
-        if (cnt) {
-            (image.count2('#') - seamonster.count2('#') * cnt).writeln;
-        }
+        int cnt = image.countPattern(pattern);
+        if (cnt)
+            (image.mirSum - pattern.mirSum * cnt).writeln;
 
-        image = image.rotate;
+        image = image.rotated.slice;
         if (i % 4 == 3)
-            image = image.mirror;
+            image = image.reversed.slice;
     }
 }
