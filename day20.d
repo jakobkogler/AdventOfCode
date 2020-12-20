@@ -11,16 +11,8 @@ auto getInputLines() {
     return generate!(() => readln.strip).until(null).array;
 }
 
-int[2] toIntegers(string line) {
-    return [line.toInteger, line.retro.to!string.toInteger];
-}
-
-int toInteger(string line) {
-    int x = 0;
-    foreach (c; line) {
-        x = 2 * x + (c == '#');
-    }
-    return x;
+string[2] withRetro(string line) {
+    return [line, line.retro.to!string];
 }
 
 string column(const ref string[] image, int column) {
@@ -54,12 +46,12 @@ struct Tile {
         this.image = lines[1..$];
     }
 
-    int[] getBorders() const {
-        int[] borders;
-        borders ~= image[0].toIntegers;
-        borders ~= image[$-1].toIntegers;
-        borders ~= image.column(0).toIntegers;
-        borders ~= image.column(-1).toIntegers;
+    string[] getBorders() const {
+        string[] borders;
+        borders ~= image[0].withRetro;
+        borders ~= image[$-1].withRetro;
+        borders ~= image.column(0).withRetro;
+        borders ~= image.column(-1).withRetro;
         return borders;
     }
 
@@ -92,7 +84,7 @@ int countPattern(const string[] image, const string[] pattern) {
 void main() {
     // Input
     Tile[] tiles;
-    int[] borders;
+    string[] borders;
     while (true) {
         auto lines = getInputLines;
         if (lines) {
@@ -121,8 +113,8 @@ void main() {
 
     // start with corner and orient it accordingly
     puzzle ~= [corners[0]];
-    while (borderOccurences[puzzle[0][0].image[0].toInteger] != 1 ||
-           borderOccurences[puzzle[0][0].image.column(0).toInteger] != 1) {
+    while (borderOccurences[puzzle[0][0].image[0]] != 1 ||
+           borderOccurences[puzzle[0][0].image.column(0)] != 1) {
         puzzle[0][0].nextOrientation;
     }
     removeById(puzzle[0][0]);
@@ -134,7 +126,7 @@ void main() {
             found.id = -1;
             foreach (tile; tiles) {
                 foreach (i; 0..8) {
-                    if (puzzle[$-1][$-1].image.column(-1).toInteger == tile.image.column(0).toInteger) {
+                    if (puzzle[$-1][$-1].image.column(-1) == tile.image.column(0)) {
                         found = tile;
                         break;
                     }
@@ -155,7 +147,7 @@ void main() {
             found.id = -1;
             foreach (tile; tiles) {
                 foreach (i; 0..8) {
-                    if (puzzle[$-1][0].image[$-1].toInteger == tile.image[0].toInteger) {
+                    if (puzzle[$-1][0].image[$-1] == tile.image[0]) {
                         found = tile;
                         break;
                     }
