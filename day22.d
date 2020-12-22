@@ -38,17 +38,16 @@ RecCombatResult recursiveCombat(int[] cardsPlayer1, int[] cardsPlayer2) {
     auto player1 = cardsPlayer1.DList!int;
     auto player2 = cardsPlayer2.DList!int;
 
-    bool[string] history;
-    string toString() {
-        return player1.array.map!(to!string).join(",") ~ ";"
-            ~ player2.array.map!(to!string).join(",");
+    bool[ulong] history;
+    ulong toHash() {
+        return player1.array.hashOf + ulong(1337) * player2.array.hashOf;
     }
 
     int p1l = to!int(cardsPlayer1.length);
     int p2l = to!int(cardsPlayer2.length);
  
     while (!player1.empty && !player2.empty) {
-        string state = toString;
+        auto state = toHash;
         if (state in history) {
             return RecCombatResult(1, []);
         }
