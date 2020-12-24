@@ -53,4 +53,45 @@ void main() {
     flipped.values.filter!"a % 2".array.length.writeln;//((a, b) => a % 2)(1).writeln;
 
     // Star 2
+    bool[Coord] black;
+    foreach (key, cnt; flipped) {
+        if (cnt % 2)
+            black[key] = true;
+    }
+    black.length.writeln;
+
+    int countBlackNeighbors(Coord c) {
+        int cnt = 0;
+        foreach (dir; ["e", "se", "sw", "w", "nw", "ne"]) {
+            auto c2 = c.move(dir);
+            if (c2 in black)
+                cnt += 1;
+        }
+        return cnt;
+    }
+
+    foreach (day; 1 .. 101) {
+        write("Day ", day, ": ");
+        double xMin = black.keys.map!"a.re".minElement - 1;
+        double xMax = black.keys.map!"a.re".maxElement + 1;
+        double yMin = black.keys.map!"a.im".minElement - 1;
+        double yMax = black.keys.map!"a.im".maxElement + 1;
+
+        bool[Coord] black2;
+        foreach (x; xMin .. xMax+1) {
+            foreach (y; yMin .. yMax+1) {
+                auto c = Coord(x, y);
+                int cnt = countBlackNeighbors(c);
+                if (c in black) {
+                    if (cnt == 1 || cnt == 2)
+                        black2[c] = true;
+                } else {
+                    if (cnt == 2)
+                        black2[c] = true;
+                }
+            }
+        }
+        black = black2;
+        black.length.writeln;
+    }
 }
