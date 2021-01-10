@@ -11,120 +11,91 @@ auto getInputLines() {
     return generate!(() => readln.strip).until(null).array;
 }
 
-class Rule {
-    abstract bool match(string s, int level = 0);
-    abstract int[] lengths();
-
-    int[] _lengths;
-    int[] getLengths() {
-        if (_lengths.empty)
-            _lengths = lengths();
-        return _lengths;
-    }
+/// A → BC
+struct Production {
+    int left;
+    int right1, right2;
 }
 
-Rule[int] rules;
-
-bool matchAnd(int[] lst, string s, int level) {
-    if (lst.length == 1)
-        return rules[lst[0]].match(s);
-
-    /* foreach (l1; 1 .. s.length) { */
-    auto l1 = rules[lst[0]].getLengths[0];
-        if (rules[lst[0]].match(s[0 .. l1], level + 1) && matchAnd(lst[1..$], s[l1..$], level + 1))
-            return true;
-    /* } */
-    return false;
+/// A -> a
+struct UnitProduction {
+    int left;
+    char right;
 }
 
-int[] combinationLengths(int[][] lst) {
-    if (lst.length == 1)
-        return lst[0];
+/// A -> a
+struct SingleProduction {
+    int left;
+    int right;
+}
 
-    auto tmp = combinationLengths(lst[1..$]);
-    int[] x;
-    foreach (v; lst[0]) {
-        foreach (w; tmp) {
-            x ~= v + w;
+class CYK {
+    Production[] productions;
+    UnitProduction[] unitProductions;
+    SingleProduction[] singleProductions;
+    int S;
+
+    void addRule(string rule) {
+        auto sides = rule.split(": ");
+        int left = sides[0].to!int;
+        auto right = sides[1];
+        if (right.startsWith("\"")) {
+            unitProductions ~= UnitProduction(left, right[1]);
+        } else {
+            foreach (rightPossibility; right.split(" | ")) {
+                auto tmp = rightPossibility.split(" ");
+                if (tmp.length == 1)
+                    singleProductions ~= SingleProduction(left, tmp[0].to!int);
+                else if (tmp.length == 2)
+                    productions ~= Production(left, tmp[0].to!int, tmp[1].to!int);
+                else
+                    assert(false, "right side with more than 2 nonterminal are not supported");
+            }
         }
     }
-    return x.sort.uniq.array;
-}
 
-class AndRule : Rule {
-    this(int[] lst) {
-        this.lst = lst;
+    void normalize() {
+        // kinda inefficient, but good enough for our input
+        // also doesn't work if there are multiple interleaving single productions
+        void replace(T)(SingleProduction singleProduction, ref T[] productions) {
+            foreach (production; productions) {
+                if (singleProduction.right == production.left) {
+                    production.left = singleProduction.left;
+                    productions ~= production;
+                }
+            }
+        }
+
+        foreach (singleProduction; singleProductions) {
+            replace(singleProduction, productions);
+            replace(singleProduction, unitProductions);
+        }
     }
 
-    int[] lst;
+    bool check(string word) {
+        int n = word.length.to!int;
+        int r = max(productions.map!"a.left".maxElement, singleProductions.map!"a.left".maxElement) + 1;
+        bool[][][] P = new bool[][][](n, n, r);
+        foreach (s, c; word) {
+            foreach (unitProduction; unitProductions) {
+                if (unitProduction.right == c)
+                    P[0][s][unitProduction.left] = true;
+            }
+        }
 
-    override string toString() {
-        return "AndRule(" ~ lst.map!(to!string).join(", ") ~ ")";
+        foreach (l; 2 .. n+1) {
+            foreach (s; 0 .. n-l+1) {
+                foreach (p; 1 .. l) {
+                    foreach (production; productions) {
+                        if (P[p-1][s][production.right1] && P[l-p-1][s+p][production.right2])
+                            P[l-1][s][production.left] = true;
+                    }
+                }
+            }
+        }
+
+        return P[n-1][0][S];
     }
-
-    override bool match(string s, int level) {
-        debug writeln("  ".repeat(level).join("") ~ "Try to match " ~ this.toString ~ " with \"" ~ s ~ "\"");
-        return matchAnd(lst, s, level);
-    }
-
-    override int[] lengths() {
-        return combinationLengths(lst.map!(idx => rules[idx].getLengths).array);
-    }
-}
-
-class OrRule : Rule {
-    this(Rule[2] lst) {
-        this.lst = lst;
-    }
-
-    Rule[2] lst;
-
-    override string toString() {
-        return "OrRule(" ~ lst[0].toString ~ ", " ~ lst[1].toString ~ ")";
-    }
-
-    override bool match(string s, int level) {
-        debug writeln("  ".repeat(level).join("") ~ "Try to match " ~ this.toString ~ " with \"" ~ s ~ "\"");
-        return lst[0].match(s, level + 1) || lst[1].match(s, level + 1);
-    }
-
-    override int[] lengths() {
-        int[] ls = lst[0].getLengths ~ lst[1].getLengths;
-        return ls.sort.uniq.array;
-    }
-}
-
-class CharRule : Rule {
-    this(char c) {
-        this.c = c;
-    }
-
-    char c;
-
-    override string toString() {
-        return "CharRule(\"" ~ c ~ "\")";
-    }
-
-    override bool match(string s, int level) {
-        debug writeln("  ".repeat(level).join("") ~ "Try to match " ~ this.toString ~ " with \"" ~ s ~ "\"");
-        return s.length == 1 && s[0] == c;
-    }
-
-    override int[] lengths() {
-        return [1];
-    }
-}
-
-Rule parseRule(string s) {
-    if (s.startsWith("\"")) {
-        return new CharRule(s[1]);
-    }
-    if (s.indexOf(" | ") >= 0) {
-        auto tmp = s.split(" | ");
-        return new OrRule([parseRule(tmp[0]), parseRule(tmp[1])]);
-    }
-    auto tmp = s.split(" ");
-    return new AndRule(tmp.map!(to!int).array);
 }
 
 void main() {
@@ -132,37 +103,23 @@ void main() {
     auto ruleStrings = getInputLines;
     auto messages = getInputLines;
 
-    foreach (line; ruleStrings) {
-        auto tmp = line.split(": ");
-        rules[to!int(tmp[0])] = parseRule(tmp[1]);
+    int countInGrammar(string[] messages, string[] ruleStrings) {
+        auto cyk = new CYK;
+        foreach (line; ruleStrings) {
+            cyk.addRule(line);
+        }
+        cyk.normalize;
+        cyk.S = 0;
+        return messages.map!(msg => cyk.check(msg)).sum;
     }
-    debug rules.writeln;
 
     // Star 1
-
-    messages.map!(msg => rules[0].match(msg)).sum.writeln;
+    countInGrammar(messages, ruleStrings).writeln;
 
     // Star 2
-    bool matchLoops(string msg) {
-        int l1 = rules[42].getLengths[0];
-        int l2 = rules[31].getLengths[0];
-        foreach (i; 1 .. msg.length / l1 + 1) {
-            int j = to!int((to!int(msg.length) - i * l1) / l2);
-            if (i * l1 + j * l2 == msg.length && i > j && j > 0) {
-                debug writeln(i, "*", l1, " + ", j, "*", l2, " = ", msg.length);
-                bool success = true;
-                foreach (I; 0 .. i) {
-                    success &= rules[42].match(msg[l1*I .. l1*(I+1)]);
-                }
-                foreach (J; 0 .. j) {
-                    success &= rules[31].match(msg[l1*i + l2*J .. l1*i + l2*(J+1)]);
-                }
-                if (success)
-                    return true;
-            }
-        }
-        return false;
-    }
+    ruleStrings = ruleStrings.replace("8: 42", "8: 42 | 42 8");
+    ruleStrings = ruleStrings.replace("11: 42 31", "11: 42 31 | 42 132");
+    ruleStrings ~= "132: 11 31";
+    countInGrammar(messages, ruleStrings).writeln;
 
-    messages.map!matchLoops.sum.writeln;
 }
