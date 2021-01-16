@@ -58,7 +58,6 @@ void main() {
         if (cnt % 2)
             black[key] = true;
     }
-    black.length.writeln;
 
     int countBlackNeighbors(Coord c) {
         int cnt = 0;
@@ -71,7 +70,6 @@ void main() {
     }
 
     foreach (day; 1 .. 101) {
-        write("Day ", day, ": ");
         double xMin = black.keys.map!"a.re".minElement - 1;
         double xMax = black.keys.map!"a.re".maxElement + 1;
         double yMin = black.keys.map!"a.im".minElement - 1;
@@ -92,6 +90,6 @@ void main() {
             }
         }
         black = black2;
-        black.length.writeln;
     }
+    black.length.writeln;
 }

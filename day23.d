@@ -71,8 +71,6 @@ int[] playGame(int[] lst, int moves) {
     
     LinkedListElem cur = ll[lst[0]];
     foreach (i; 0..moves) {
-        if ((i + 1) % 1000 == 0)
-            writeln("iteration ", i+1);
         cur = performMove(ll, cur);
     }
 
