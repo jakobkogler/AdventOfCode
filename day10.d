@@ -19,7 +19,6 @@ void main() {
 
     // Star 1
     auto byCounts = numbers.sort.slide(2).map!`a[1]-a[0]`.array.sort.group.assocArray;
-    byCounts.writeln;
     (byCounts[1] * byCounts[3]).writeln;
 
     // Star 2
@@ -27,7 +26,7 @@ void main() {
     dp[0] = 1;
     foreach (i; 1 .. numbers.length) {
         long j = i - 1;
-        while (j >= 1 && numbers[i] - numbers[j] <= 3) {
+        while (j >= 0 && numbers[i] - numbers[j] <= 3) {
             dp[i] += dp[j];
             j--;
         }
