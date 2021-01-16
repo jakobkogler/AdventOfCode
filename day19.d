@@ -4,6 +4,7 @@
     dependency "cyk" version="~>1.1.0"
     stringImportPaths "."
 +/
+// run with dub --build=release --single day19.d <input/day19.in
 
 import std.stdio;
 import std.conv;
