@@ -34,8 +34,8 @@ void main() {
     messages.map!(msg => cyk.check(msg)).array.sum.writeln;
 
     // Star 2
-    rules.remove!(rule => rule == "8: 42" || rule == "11: 42 31");
-    rules ~= ["8: 42 | 42 8", "11: 42 31 | 42 11 31"];
+    rules = rules.replace("8: 42", "8: 42 | 42 8")
+                 .replace("11: 42 31", "11: 42 31 | 42 11 31");
     cyk = buildCYK(rules);
     messages.map!(msg => cyk.check(msg)).sum.writeln;
 }
