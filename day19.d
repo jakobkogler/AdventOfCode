@@ -1,7 +1,7 @@
 #!/usr/bin/env dub
 /+ dub.sdl:
     name "day19"
-    dependency "cyk" version="~>1.0.0"
+    dependency "cyk" version="~>1.1.0"
     stringImportPaths "."
 +/
 
@@ -31,11 +31,11 @@ void main() {
 
     // Star 1
     auto cyk = buildCYK(rules);
-    messages.map!(message => cyk.check(message.map!(to!string).array)).sum.writeln;
+    messages.map!(msg => cyk.check(msg)).array.sum.writeln;
 
     // Star 2
     rules.remove!(rule => rule == "8: 42" || rule == "11: 42 31");
     rules ~= ["8: 42 | 42 8", "11: 42 31 | 42 11 31"];
     cyk = buildCYK(rules);
-    messages.map!(message => cyk.check(message.map!(to!string).array)).sum.writeln;
+    messages.map!(msg => cyk.check(msg)).sum.writeln;
 }
