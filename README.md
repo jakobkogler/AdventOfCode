@@ -1,6 +1,8 @@
-# Advent of Code 2020
+# Advent of Code
 
-My solutions in D for this year's [Advent of Code](https://adventofcode.com/2020).
+My solutions in D for this year's [Advent of Code 2020](https://adventofcode.com/2020).
+
+For my solutions of the 2019 year, visit the 2019 branch: [adventofcode2019](https://github.com/jakobkogler/AdventOfCode/tree/adventofcode2019).
 
 ### Usage:
 
